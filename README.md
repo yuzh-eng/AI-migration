@@ -1,0 +1,1 @@
+py -3 -m streamlit run migration_tool/app.py
