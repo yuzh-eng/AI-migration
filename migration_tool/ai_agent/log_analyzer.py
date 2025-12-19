@@ -40,6 +40,7 @@ def analyze_logs(
     model_name: str | None = None,
     base_url: str | None = None,
 ):
+    provider = (provider or "").lower() or None
     events = _read_logs(log_path)
     convert_fail = []
     exec_fail = []

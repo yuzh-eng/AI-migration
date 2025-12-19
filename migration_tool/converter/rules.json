@@ -1,0 +1,48 @@
+{
+  "replacements": [
+    [
+      "\\bNVL\\s*\\(",
+      "COALESCE("
+    ],
+    [
+      "\\bSYSDATE\\b",
+      "CURRENT_TIMESTAMP()"
+    ],
+    [
+      "\\bSYSTIMESTAMP\\b",
+      "CURRENT_TIMESTAMP()"
+    ],
+    [
+      "\\bFROM\\s+DUAL\\b",
+      ""
+    ]
+  ],
+  "regex": [
+    {
+      "pattern": "\\bTRUNC\\s*\\(\\s*([^,\\)]+)\\s*\\)",
+      "repl": "DATE_TRUNC('day', \\1)"
+    },
+    {
+      "pattern": "\\bTRUNC\\s*\\(\\s*([^,\\)]+)\\s*,\\s*'?(MONTH|MON)'?\\s*\\)",
+      "repl": "DATE_TRUNC('month', \\1)"
+    },
+    {
+      "pattern": "\\bADD_MONTHS\\s*\\(\\s*([^,]+)\\s*,\\s*([^\\)]+)\\)",
+      "repl": "DATEADD(month, \\2, \\1)"
+    },
+    {
+      "pattern": "\\bDECODE\\s*\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,\\)]+)\\s*(?:,\\s*([^\\)]+))?\\)",
+      "repl": "CASE WHEN \\1=\\2 THEN \\3 ELSE \\4 END"
+    },
+    {
+      "pattern": "\\bNVL2\\s*\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^\\)]+)\\)",
+      "repl": "IFF(\\1 IS NOT NULL, \\2, \\3)"
+    }
+  ],
+  "warnings": [
+    {
+      "pattern": "\\bCONNECT\\s+BY\\b",
+      "message": "CONNECT BY detected; manual rewrite to WITH RECURSIVE required"
+    }
+  ]
+}
