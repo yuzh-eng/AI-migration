@@ -118,7 +118,7 @@ def analyze_logs(
                 f"建议: {json.dumps(suggestions, ensure_ascii=False)}\n"
             )
             if provider == "dashscope":
-                bu = base_url or "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+                bu = base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1"
                 client = OpenAI(api_key=api_key, base_url=bu)
                 model = model_name or "qwen-plus"
                 llm_provider = "dashscope"
@@ -143,7 +143,7 @@ def analyze_logs(
                     f"建议: {json.dumps(suggestions, ensure_ascii=False)}\n"
                 )
                 if provider == "dashscope":
-                    bu = base_url or "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+                    bu = base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1"
                     url = bu.rstrip("/") + "/chat/completions"
                     model = model_name or "qwen-plus"
                     llm_provider = "dashscope"

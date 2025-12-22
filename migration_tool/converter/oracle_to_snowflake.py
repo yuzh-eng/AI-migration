@@ -28,13 +28,32 @@ def _apply_replacements(s: str, items):
 
 def _default_rules():
     return {
-        "replacements": [
-            [r"\bNVL\s*\(", "COALESCE("],
-            [r"\bSYSDATE\b", "CURRENT_TIMESTAMP()"],
-            [r"\bSYSTIMESTAMP\b", "CURRENT_TIMESTAMP()"],
-            [r"\bFROM\s+DUAL\b", ""],
-            [r"\bSUBSTR\s*\(", "SUBSTRING("],
-        ],
+      "replacements": [
+    # // ===== 函数类 =====
+    ["\\bNVL\\s*\\(", "COALESCE("],
+    ["\\bSUBSTR\\s*\\(", "SUBSTRING("],
+
+    # // ===== 时间函数 =====
+    ["\\bSYSDATE\\b", "CURRENT_TIMESTAMP()"],
+    ["\\bSYSTIMESTAMP\\b", "CURRENT_TIMESTAMP()"],
+    # // ===== Oracle 特殊表 =====
+    ["\\bFROM\\s+DUAL\\b", ""],
+
+    # // ===== 字符类型 =====
+    ["\\bVARCHAR2\\s*\\(", "VARCHAR("],
+    ["\\bNVARCHAR2\\s*\\(", "VARCHAR("],
+
+    # // CLOB 明确映射为 Snowflake 最大 VARCHAR
+    ["\\bCLOB\\b", "VARCHAR(16777216)"],
+
+    # // ===== 时间类型 =====
+    ["\\bTIMESTAMP\\s+WITH\\s+TIME\\s+ZONE\\b", "TIMESTAMP_TZ"],
+    ["\\bTIMESTAMP\\s+WITH\\s+LOCAL\\s+TIME\\s+ZONE\\b", "TIMESTAMP_LTZ"],
+
+    # // Oracle DATE → Snowflake TIMESTAMP（推荐显式）
+    ["\\bDATE\\b", "TIMESTAMP_NTZ"]
+    ],  
+
         "regex": [
             {"pattern": r"\bTRUNC\s*\(\s*([^,\)]+)\s*\)", "repl": r"DATE_TRUNC('day', \1)"},
             {"pattern": r"\bTRUNC\s*\(\s*([^,\)]+)\s*,\s*'?(MONTH|MON)'?\s*\)", "repl": r"DATE_TRUNC('month', \1)"},
@@ -87,5 +106,9 @@ def convert(sql: str, rules: dict | None = None):
         s = s + f" LIMIT {n}"
     elif re.search(r"\bROWNUM\b", s, flags=re.IGNORECASE):
         warnings.append("ROWNUM detected; consider LIMIT or ROW_NUMBER() for pagination")
+
+    s = re.sub(r"(\bDATE\b)(\s+DEFAULT\s+(?:CURRENT_TIMESTAMP\s*\(\s*\)|CURRENT_TIMESTAMP\b|SYSTIMESTAMP\b))",
+               r"DATE DEFAULT CURRENT_DATE()", s, flags=re.IGNORECASE)
+    s = re.sub(r"(\bDATE\b)(\s+DEFAULT\s+SYSDATE\b)", r"DATE DEFAULT CURRENT_DATE()", s, flags=re.IGNORECASE)
 
     return s.strip(), warnings

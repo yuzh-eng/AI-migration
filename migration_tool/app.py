@@ -33,20 +33,122 @@ def main():
     st.title("Oracle → Snowflake SQL 转换与测试工具(BETA)")
     st.markdown(
         """
-        <div style="padding:16px;border-radius:14px;background:linear-gradient(90deg,#1f6feb 0%,#2ea043 100%);color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.15);">
-          <div style="font-size:18px;font-weight:700;">高效完成 Oracle → Snowflake 迁移与验证</div>
-          <div style="opacity:0.95;margin-top:6px;">集成 SQL 转换、连接测试、执行校验、日志与 AI 分析</div>
-        </div>
         <style>
-          .stButton>button{border-radius:10px;padding:0.55rem 1.05rem;background:#1f6feb;color:#fff;border:0}
-          .stButton>button:hover{background:#1559c0}
-          .stTextInput>div>div>input{border-radius:10px}
-          .stTextArea textarea{border-radius:10px}
-          pre, code{border-radius:10px}
-          .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06)}
-          .muted{opacity:.8}
-          .section-title{font-weight:700;margin-bottom:8px}
+          :root {
+            --primary-color: #2E86DE;
+            --secondary-color: #10AC84;
+            --background-color: #F7F9FC;
+            --card-bg: #FFFFFF;
+            --text-color: #2C3E50;
+            --border-radius: 12px;
+          }
+          .main {
+            /* Let Streamlit handle the background color to support Light/Dark modes naturally */
+          }
+          .stButton>button {
+            border-radius: var(--border-radius);
+            padding: 0.6rem 1.2rem;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #54A0FF 100%);
+            color: #fff !important;
+            border: none;
+            box-shadow: 0 4px 6px rgba(46, 134, 222, 0.2);
+            transition: all 0.3s ease;
+            font-weight: 600;
+          }
+          .stButton>button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(46, 134, 222, 0.3);
+            color: #fff !important;
+          }
+          .stTextInput>div>div>input, .stTextArea textarea, .stSelectbox>div>div {
+            border-radius: var(--border-radius);
+            border: 1px solid #DFE6E9;
+            background-color: #fff !important;
+            color: #2C3E50 !important; /* Force dark text on white inputs */
+          }
+          .stTextInput>div>div>input:focus, .stTextArea textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(46, 134, 222, 0.2);
+          }
+          .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.02);
+            margin-bottom: 20px;
+            color: var(--text-color) !important; /* Force dark text inside cards */
+          }
+          /* Force standard text elements inside cards to be dark */
+          .card p, .card div, .card span, .card label, .card h1, .card h2, .card h3, .card h4, .card h5, .card h6, .card .stMarkdown {
+            color: var(--text-color) !important;
+          }
+          .hero-header {
+            padding: 32px;
+            border-radius: 20px;
+            background: linear-gradient(120deg, #2E86DE 0%, #10AC84 100%);
+            color: #fff;
+            box-shadow: 0 10px 40px rgba(46, 134, 222, 0.25);
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+          }
+          .hero-header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            transform: rotate(30deg);
+          }
+          .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .stTabs [data-baseweb="tab-list"] {
+            gap: 8px;
+            background-color: transparent;
+          }
+          .stTabs [data-baseweb="tab"] {
+            height: 40px;
+            border-radius: 8px;
+            background-color: #fff;
+            border: 1px solid #E0E0E0;
+            padding: 0 16px;
+            font-weight: 600;
+            color: #2C3E50 !important; /* Force dark text for unselected tabs */
+          }
+          .stTabs [aria-selected="true"] {
+            background-color: var(--primary-color);
+            color: #fff !important;
+            border: none;
+          }
+          .stTabs [aria-selected="false"]:hover {
+            color: var(--primary-color) !important;
+            background-color: #F0F2F6;
+          }
+          .stExpander {
+            border-radius: var(--border-radius);
+            border: 1px solid #E0E0E0;
+            background-color: #fff;
+            overflow: hidden;
+          }
+          div[data-testid="stExpander"] > details > summary {
+            background-color: #FAFAFA;
+            border-radius: var(--border-radius);
+          }
         </style>
+        <div class="hero-header">
+          <div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;">🚀 Oracle to Snowflake Migration Assistant</div>
+          <div style="font-size:16px;opacity:0.9;margin-top:8px;font-weight:400;">智能 SQL 转换 · 极速一致性校验 · AI 深度诊断</div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
@@ -581,16 +683,31 @@ def main():
                     st.error(f"源库执行失败：{o_err}")
                 if s_err:
                     st.error(f"目标库执行失败：{s_err}")
-            st.json({
-                "汇总": {
-                    "行数一致": report["row_match"],
-                    "列一致": report["columns_match"],
-                    "源行数": report["source_rows"],
-                    "目标行数": report["target_rows"],
-                },
-                "列差异": report["column_diff"],
-                "耗时ms": report["elapsed_ms"],
-            })
+            
+            st.markdown("### 📊 对比结果摘要")
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.metric("源库行数", report["source_rows"])
+            with m2:
+                st.metric("目标库行数", report["target_rows"], delta=report["target_rows"]-report["source_rows"])
+            with m3:
+                match_icon = "✅" if report["row_match"] else "❌"
+                st.metric("行内容一致性", "通过" if report["row_match"] else "不一致", delta=match_icon, delta_color="normal")
+            with m4:
+                col_icon = "✅" if report["columns_match"] else "⚠️"
+                st.metric("列结构一致性", "一致" if report["columns_match"] else "差异", delta=col_icon, delta_color="normal")
+            
+            with st.expander("查看详细 JSON 报告", expanded=False):
+                st.json({
+                    "汇总": {
+                        "行数一致": report["row_match"],
+                        "列一致": report["columns_match"],
+                        "源行数": report["source_rows"],
+                        "目标行数": report["target_rows"],
+                    },
+                    "列差异": report["column_diff"],
+                    "耗时ms": report["elapsed_ms"],
+                })
             if report["samples_mismatch"]:
                 st.write("样例不一致行")
                 st.dataframe(report["samples_mismatch"])
@@ -743,57 +860,113 @@ def main():
     with t_logs_ai:
         provider = st.selectbox("LLM 提供方", ["DashScope", "OpenAI"], index=0)
         provider_key = provider.lower()
+        base_url_input = None
+        if provider_key == "dashscope":
+            endpoint = st.selectbox("DashScope 节点", ["国内 (aliyuncs.com)", "国际 (aliyuncs-intl.com)"], index=0, key="dashscope_endpoint")
+            base_url_input = "https://dashscope.aliyuncs.com/compatible-mode/v1" if endpoint.startswith("国内") else "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
         use_env = st.checkbox("使用环境变量", value=True)
         api_key_input = st.text_input("LLM API Key", "", type="password", key="llm_api_key")
         model_name = st.text_input("LLM 模型", "qwen-plus" if provider_key == "dashscope" else "gpt-4o-mini", key="llm_model")
+        
+        # Shared context for Evolution Lab
+        if "llm_config" not in st.session_state:
+            st.session_state["llm_config"] = {}
+        st.session_state["llm_config"] = {
+            "provider": provider_key,
+            "api_key": api_key_input if not use_env else None,
+            "model": model_name,
+            "use_env": use_env,
+            "base_url": base_url_input if provider_key == "dashscope" else None
+        }
+
         if use_env:
             st.caption("将使用 DASHSCOPE_API_KEY/QWEN_API_KEY 或 OPENAI_API_KEY")
         if st.button("测试 LLM 连接", key="btn_llm_ping"):
             try:
-                from openai import OpenAI
-                base_url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1" if provider_key == "dashscope" else None
+                from migration_tool.ai_agent.llm_utils import get_llm_client, simple_chat, probe_quota
+                
                 ak = None if use_env else (api_key_input or None)
-                if ak:
-                    client = OpenAI(api_key=ak, base_url=base_url) if provider_key == "dashscope" else OpenAI(api_key=ak)
-                else:
-                    import os as _os
-                    if provider_key == "dashscope":
-                        env_key = _os.environ.get("DASHSCOPE_API_KEY") or _os.environ.get("QWEN_API_KEY")
-                        client = OpenAI(api_key=env_key, base_url=base_url) if env_key else None
-                    else:
-                        env_key = _os.environ.get("OPENAI_API_KEY")
-                        client = OpenAI(api_key=env_key) if env_key else None
+                base_url = st.session_state["llm_config"].get("base_url") if provider_key == "dashscope" else None
+                
+                client = get_llm_client(api_key=ak, provider=provider_key, base_url=base_url)
+                
                 if client is None:
                     st.error("缺少密钥：请在 UI 输入或设置环境变量")
                 else:
                     m = model_name or ("qwen-plus" if provider_key == "dashscope" else "gpt-4o-mini")
-                    resp = client.chat.completions.create(model=m, messages=[{"role": "user", "content": "ping"}], temperature=0)
+                    resp = simple_chat(client, m, [{"role": "user", "content": "ping"}])
                     st.success(f"连接成功：{provider_key} / {m}")
-                    st.write(resp.choices[0].message.content)
-            except Exception:
+                    st.write(resp)
+            except Exception as e:
+                st.error(str(e))
+
+        if st.button("检查 API 额度", key="btn_llm_quota"):
+            try:
+                from migration_tool.ai_agent.llm_utils import probe_quota
+                ak = None if use_env else (api_key_input or None)
+                base_url = st.session_state["llm_config"].get("base_url") if provider_key == "dashscope" else None
+                m = model_name or ("qwen-plus" if provider_key == "dashscope" else "gpt-4o-mini")
+                res = probe_quota(provider=provider_key, api_key=ak, base_url=base_url, model=m)
+                if res.get("ok"):
+                    st.success("额度探测成功")
+                    st.json({
+                        "状态码": res.get("status_code"),
+                        "关键信息": res.get("quota"),
+                        "使用统计": res.get("usage") or {}
+                    })
+                    if not res.get("quota"):
+                        st.info("提供方未返回公开的限额头信息（ratelimit/quota），已展示 usage 统计与 request-id，用于基本连通性确认。")
+                    max_env = os.environ.get("QUOTA_TOKENS_MAX")
+                    try:
+                        max_val = float(max_env) if max_env else 0.0
+                    except Exception:
+                        max_val = 0.0
+                    max_val = st.number_input("配额总Tokens(估算)", min_value=0.0, value=max_val or 0.0, step=1000.0, key="quota_tokens_max")
+                    usage = res.get("usage") or {}
+                    total = float(usage.get("total_tokens") or 0.0)
+                    prompt = float(usage.get("prompt_tokens") or 0.0)
+                    completion = float(usage.get("completion_tokens") or 0.0)
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        st.metric("Prompt Tokens", int(prompt))
+                    with c2:
+                        st.metric("Completion Tokens", int(completion))
+                    with c3:
+                        st.metric("Total Tokens", int(total))
+                    if max_val and total:
+                        frac = min(1.0, total / max_val)
+                        st.progress(frac, text=f"总Tokens使用率 {int(frac*100)}%（{int(total)}/{int(max_val)}）")
+                else:
+                    st.error(res.get("error"))
+            except Exception as e:
+                st.error(str(e))
+        if st.button("长文本测试以获取usage", key="btn_llm_usage_test"):
+            try:
+                from migration_tool.ai_agent.llm_utils import get_llm_client, simple_chat_raw
+                ak = None if use_env else (api_key_input or None)
+                base_url = st.session_state["llm_config"].get("base_url") if provider_key == "dashscope" else None
+                m = model_name or ("qwen-plus" if provider_key == "dashscope" else "gpt-4o-mini")
+                client = get_llm_client(api_key=ak, provider=provider_key, base_url=base_url)
+                payload = [{"role": "user", "content": "请对以下内容进行摘要：" + ("数据迁移与一致性校验的最佳实践。" * 200)}]
+                data = simple_chat_raw(client, m, payload)
+                usage = data.get("usage") or {}
+                st.success("已返回 usage")
+                st.json(usage)
+                max_env = os.environ.get("QUOTA_TOKENS_MAX")
                 try:
-                    import requests, os as _os
-                    base = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1" if provider_key == "dashscope" else "https://api.openai.com/v1"
-                    ak = None if use_env else (api_key_input or None)
-                    if not ak:
-                        ak = (_os.environ.get("DASHSCOPE_API_KEY") or _os.environ.get("QWEN_API_KEY")) if provider_key == "dashscope" else _os.environ.get("OPENAI_API_KEY")
-                    if not ak:
-                        st.error("缺少密钥：请在 UI 输入或设置环境变量")
-                    else:
-                        m = model_name or ("qwen-plus" if provider_key == "dashscope" else "gpt-4o-mini")
-                        url = base.rstrip("/") + "/chat/completions"
-                        headers = {"Authorization": f"Bearer {ak}", "Content-Type": "application/json"}
-                        payload = {"model": m, "messages": [{"role": "user", "content": "ping"}], "temperature": 0}
-                        r = requests.post(url, headers=headers, json=payload, timeout=20)
-                        if r.status_code == 200:
-                            st.success(f"连接成功：{provider_key} / {m}")
-                            st.write(r.json().get("choices", [{}])[0].get("message", {}).get("content"))
-                        else:
-                            st.error(f"{r.status_code}: {r.text}")
-                except Exception as e2:
-                    st.error(str(e2))
+                    max_val = float(max_env) if max_env else 0.0
+                except Exception:
+                    max_val = 0.0
+                max_val = st.number_input("配额总Tokens(估算)", min_value=0.0, value=max_val or 0.0, step=1000.0, key="quota_tokens_max2")
+                total = float(usage.get("total_tokens") or 0.0)
+                if max_val and total:
+                    frac = min(1.0, total / max_val)
+                    st.progress(frac, text=f"总Tokens使用率 {int(frac*100)}%（{int(total)}/{int(max_val)}）")
+            except Exception as e:
+                st.error(str(e))
+
         if st.button("AI Agent 分析日志", key="btn_llm_analyze"):
-            base_url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1" if provider_key == "dashscope" else None
+            base_url = st.session_state["llm_config"].get("base_url") if provider_key == "dashscope" else None
             ak = None if use_env else (api_key_input or None)
             report = analyze_logs(api_key=ak, provider=provider_key, model_name=model_name or None, base_url=base_url)
             st.json(report.get("summary"))
@@ -810,6 +983,114 @@ def main():
                 st.warning("未生成 LLM 报告")
                 if report.get("llm_error"):
                     st.error(report.get("llm_error"))
+
+    st.subheader("🧬 规则进化实验室")
+    st.caption("基于 AI Agent 的自动化规则生成、转换、审查与优化闭环")
+    
+    col_mode1, col_mode2 = st.columns([2, 1])
+    with col_mode1:
+        presets = [
+            "自定义场景",
+            "随机探索 (AI 自动决定)",
+            "日期时间函数 (TO_DATE, ADD_MONTHS, TRUNC)",
+            "字符串操作 (SUBSTR, INSTR, REGEXP_LIKE)",
+            "空值处理 (NVL, NVL2, DECODE)",
+            "层次查询 (CONNECT BY, START WITH)",
+            "窗口函数 (RANK, DENSE_RANK, ROW_NUMBER)",
+            "聚合与分组 (LISTAGG, ROLLUP, CUBE)",
+            "特殊数据类型 (CLOB, BLOB, XMLTYPE)",
+            "MERGE INTO 语句",
+            "PIVOT / UNPIVOT 操作"
+        ]
+        selected_preset = st.selectbox("选择测试场景", presets, index=0, key="evo_preset")
+    
+    with col_mode2:
+        st.write("") # Spacer
+        st.write("") 
+        
+    if selected_preset == "自定义场景":
+        evo_topic = st.text_input("输入测试场景/关注点", "Oracle 复杂日期函数与NVL组合", key="evo_topic_input")
+    elif selected_preset == "随机探索 (AI 自动决定)":
+        evo_topic = "Oracle SQL 中容易在迁移到 Snowflake 时出错的复杂语法特性，随机选择一个特定的技术点（如特定的函数组合、复杂的子查询、专有的 Join 语法等）进行深入测试。"
+        st.info("🤖 AI 将自动选择一个高风险的 Oracle 语法特性进行测试")
+    else:
+        # Extract content inside parentheses if available, or use full string
+        if "(" in selected_preset:
+            evo_topic = selected_preset.split("(")[0].strip() + " 相关语法的复杂用法测试"
+        else:
+            evo_topic = selected_preset + " 的复杂用法测试"
+        st.text_input("当前测试场景", evo_topic, disabled=True)
+
+    if "evo_state" not in st.session_state:
+        st.session_state["evo_state"] = {}
+        
+    if st.button("开始进化循环", key="btn_start_evo"):
+        from migration_tool.ai_agent.evolution import EvolutionManager
+        
+        cfg = st.session_state.get("llm_config", {})
+        prov = cfg.get("provider", "dashscope")
+        ak = cfg.get("api_key")
+        model = cfg.get("model")
+        
+        em = EvolutionManager(api_key=ak, provider=prov, model=model, base_url=cfg.get("base_url"))
+        
+        with st.status("正在运行 AI 进化循环...", expanded=True) as status:
+            st.write("1. Generator: 生成 Oracle SQL 测试用例...")
+            oracle_sql = em.generate_sql(evo_topic)
+            st.code(oracle_sql, language="sql")
+            st.session_state["evo_state"]["oracle_sql"] = oracle_sql
+            
+            st.write("2. Converter: 执行现有规则转换...")
+            sf_sql, warns = em.convert_sql(oracle_sql)
+            st.code(sf_sql, language="sql")
+            if warns:
+                st.warning(f"Warnings: {warns}")
+            st.session_state["evo_state"]["snowflake_sql"] = sf_sql
+            
+            st.write("3. Reviewer: 审查转换结果...")
+            review = em.review_conversion(oracle_sql, sf_sql)
+            st.json(review)
+            st.session_state["evo_state"]["review"] = review
+            
+            if review.get("score", 0) < 10 or review.get("issues"):
+                st.write("4. Optimizer: 分析并生成优化规则...")
+                rule_proposal = em.optimize_rule(oracle_sql, sf_sql, review.get("issues"))
+                if rule_proposal:
+                    st.success("生成优化规则成功！")
+                    st.json(rule_proposal)
+                    st.session_state["evo_state"]["proposal"] = rule_proposal
+                else:
+                    st.warning("Optimizer 未能生成有效规则。")
+                    st.session_state["evo_state"]["proposal"] = None
+            else:
+                st.success("审查通过，无需优化。")
+                st.session_state["evo_state"]["proposal"] = None
+                
+            status.update(label="进化循环完成", state="complete", expanded=True)
+
+    if st.session_state.get("evo_state", {}).get("proposal"):
+        st.info("检测到待应用的优化规则")
+        col_evo1, col_evo2 = st.columns(2)
+        with col_evo1:
+            st.write("建议规则")
+            st.json(st.session_state["evo_state"]["proposal"])
+        with col_evo2:
+            if st.button("✅ 接受并应用规则", key="btn_apply_rule"):
+                from migration_tool.ai_agent.evolution import EvolutionManager
+                cfg = st.session_state.get("llm_config", {})
+                em = EvolutionManager(api_key=cfg.get("api_key"), provider=cfg.get("provider"), base_url=cfg.get("base_url"))
+                
+                # Save snapshot
+                idx = em.save_rule_snapshot(
+                    st.session_state["evo_state"]["proposal"],
+                    st.session_state["evo_state"]["oracle_sql"],
+                    st.session_state["evo_state"]["snowflake_sql"],
+                    st.session_state["evo_state"]["review"]
+                )
+                # Apply
+                em.apply_rule(st.session_state["evo_state"]["proposal"])
+                st.success(f"规则已应用并归档 (版本 #{idx})")
+                st.session_state["evo_state"]["proposal"] = None # Clear after apply
 
     st.caption("日志文件位置: " + _log_path())
     owner = 'Yuzh'

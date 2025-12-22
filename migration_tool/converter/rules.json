@@ -37,6 +37,18 @@
     {
       "pattern": "\\bNVL2\\s*\\(\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^\\)]+)\\)",
       "repl": "IFF(\\1 IS NOT NULL, \\2, \\3)"
+    },
+    {
+      "pattern": "NVL\\(([^,]+),\\s*([^)]+)\\)",
+      "repl": "COALESCE($1, $2)"
+    },
+    {
+      "pattern": "RTRIM\\(XMLCAST\\(XMLAGG\\(XMLELEMENT\\(E,([^)]+)\\) ORDER BY([^)]+)\\) AS XMLTYPE\\)\\.GETCLOBVAL\\(\\), '([^']*)'\\)",
+      "repl": "LISTAGG$1$2, '$3') WITHIN GROUP $2"
+    },
+    {
+      "pattern": "(NVL\\()([^,]+),\\s*('(?:[^']|'')*')\\)",
+      "repl": "COALESCE($2, $3)"
     }
   ],
   "warnings": [

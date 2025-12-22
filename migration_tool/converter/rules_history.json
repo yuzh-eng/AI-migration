@@ -1,0 +1,75 @@
+[
+  {
+    "timestamp": "2025-12-22T06:16:02.420280",
+    "trigger_sql": "SELECT NVL(TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'MM'), 6), 'YYYY-MM-DD'), 'DEFAULT_DATE') AS adjusted_date,\n       NVL2(LAST_DAY(TO_DATE('2023-02-15', 'YYYY-MM-DD')), \n            TO_CHAR(NEXT_DAY(LAST_DAY(TO_DATE('2023-02-15', 'YYYY-MM-DD')), 'MONDAY'), 'Day, DD Month YYYY'), \n            'NO_LAST_DAY') AS next_monday_after_last_day,\n       COALESCE(TO_CHAR(FIRST_VALUE(HIREDATE) OVER (ORDER BY HIREDATE ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 'DD-MON-YYYY'),\n                TO_CHAR(SYSDATE, 'DD-MON-YYYY')) AS first_hire_or_today,\n       NVL(TO_CHAR(NULLIF(MONTHS_BETWEEN(SYSDATE, TO_DATE('1990-01-01', 'YYYY-MM-DD')), 0), 'FM999.00'), 'NO_MONTHS') AS months_diff\nFROM EMPLOYEES\nWHERE ROWNUM = 1;",
+    "before_conversion": "SELECT COALESCE(TO_CHAR(DATEADD(month, CURRENT_TIMESTAMP(, DATE_TRUNC('day'), 'MM'), 6), 'YYYY-MM-DD'), 'DEFAULT_DATE') AS adjusted_date,\n       IFF(LAST_DAY(TO_DATE('2023-02-15' IS NOT NULL, 'YYYY-MM-DD')), TO_VARCHAR(NEXT_DAY(LAST_DAY(TO_DATE('2023-02-15', 'YYYY-MM-DD')), 'MONDAY'), 'Day, DD Month YYYY'), \n            'NO_LAST_DAY') AS next_monday_after_last_day,\n       COALESCE(TO_VARCHAR(FIRST_VALUE(HIREDATE) OVER (ORDER BY HIREDATE ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 'DD-MON-YYYY'),\n                TO_VARCHAR(CURRENT_TIMESTAMP(), 'DD-MON-YYYY')) AS first_hire_or_today,\n       COALESCE(TO_CHAR(NULLIF(MONTHS_BETWEEN(CURRENT_TIMESTAMP(), TO_DATE('1990-01-01', 'YYYY-MM-DD')), 0), 'FM999.00'), 'NO_MONTHS') AS months_diff\nFROM EMPLOYEES\nWHERE ROWNUM = 1;",
+    "issues": [
+      "Incorrect use of DATEADD and DATE_TRUNC: DATEADD(month, CURRENT_TIMESTAMP(, DATE_TRUNC('day'), 'MM'), 6) has syntax errors — misplaced parentheses and incorrect nesting.",
+      "DATE_TRUNC('day') is used incorrectly; should be DATE_TRUNC('month', CURRENT_DATE()) to match Oracle's TRUNC(SYSDATE, 'MM').",
+      "CURRENT_TIMESTAMP() is used instead of CURRENT_DATE() in some contexts, leading to potential timestamp vs date mismatches.",
+      "SYSDATE is replaced with CURRENT_TIMESTAMP(), but should typically be replaced with CURRENT_DATE() or SYSDATE equivalent in Snowflake (e.g., CURRENT_DATE).",
+      "The expression TO_DATE('2023-02-15' IS NOT NULL, 'YYYY-MM-DD') is invalid syntax — 'IS NOT NULL' inside TO_DATE is not valid.",
+      "IFF condition uses LAST_DAY(...) IS NOT NULL logic incorrectly — LAST_DAY always returns a date; the check is redundant and misapplied.",
+      "NVL and NVL2 are replaced inconsistently: NVL is replaced by COALESCE correctly, but NVL2 usage is replaced with IFF, yet the condition is wrong.",
+      "NEXT_DAY function in Snowflake expects day of week as number or string like 'Monday', but input 'MONDAY' may need to be lowercase or consistent with locale; also, formatting with 'Day, DD Month YYYY' may not render as expected.",
+      "TO_CHAR with format 'FM999.00' uses Oracle-specific FM format; Snowflake uses different formatting (e.g., via FORMAT function or compatible patterns), which is not handled.",
+      "ROWNUM is used in Snowflake — Snowflake does not support ROWNUM; should use LIMIT 1 instead.",
+      "Function MONTHS_BETWEEN exists in Snowflake but behavior may differ slightly from Oracle; however, usage appears acceptable if arguments are correct.",
+      "Use of TO_VARCHAR instead of TO_CHAR is correct in Snowflake, but inconsistent — some still use TO_CHAR (which is not valid in Snowflake); must use TO_VARCHAR."
+    ],
+    "proposed_rule": {
+      "type": "regex",
+      "pattern": "NVL\\(([^,]+),\\s*([^)]+)\\)",
+      "repl": "COALESCE($1, $2)"
+    },
+    "applied": false
+  },
+  {
+    "timestamp": "2025-12-22T06:29:04.333697",
+    "trigger_sql": "SELECT /*+ LEADING(e) USE_NL(d) */ \n       e.employee_id,\n       e.first_name,\n       e.last_name,\n       d.department_name,\n       NVL(TO_CHAR(e.commission_pct, 'FM90D00%'), 'N/A') AS commission_formatted,\n       CASE \n         WHEN e.salary > (SELECT AVG(salary) FROM employees WHERE department_id = e.department_id) \n         THEN 'Above Avg'\n         ELSE 'Below Avg'\n       END AS salary_level,\n       ROW_NUMBER() OVER (PARTITION BY e.department_id ORDER BY e.salary DESC NULLS LAST) AS rank_in_dept,\n       LAG(e.hire_date, 1, DATE '1900-01-01') IGNORE NULLS OVER (ORDER BY e.hire_date) AS prev_hire_date,\n       RTRIM(XMLCAST(XMLAGG(XMLELEMENT(E, e.first_name || ', ') ORDER BY e.last_name) AS XMLTYPE).GETCLOBVAL(), ', ') AS names_list\nFROM   employees e\n       INNER JOIN departments d ON e.department_id = d.department_id\n       LEFT JOIN locations l ON d.location_id = l.location_id AND l.country_id = 'US'\nWHERE  e.hire_date BETWEEN ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), -12) AND SYSDATE\n  AND  REGEXP_LIKE(e.email, '^[A-Z]{3}[0-9]{3}$')\n  AND  e.manager_id IS NOT NULL\nCONNECT BY PRIOR e.employee_id = e.manager_id\nSTART WITH e.manager_id IS NULL\nORDER BY e.department_id, rank_in_dept;",
+    "before_conversion": "SELECT /*+ LEADING(e) USE_NL(d) */ \n       e.employee_id,\n       e.first_name,\n       e.last_name,\n       d.department_name,\n       COALESCE(TO_VARCHAR(e.commission_pct, 'FM90D00%'), 'N/A') AS commission_formatted,\n       CASE \n         WHEN e.salary > (SELECT AVG(salary) FROM employees WHERE department_id = e.department_id) \n         THEN 'Above Avg'\n         ELSE 'Below Avg'\n       END AS salary_level,\n       ROW_NUMBER() OVER (PARTITION BY e.department_id ORDER BY e.salary DESC NULLS LAST) AS rank_in_dept,\n       LAG(e.hire_date, 1, TIMESTAMP_NTZ '1900-01-01') IGNORE NULLS OVER (ORDER BY e.hire_date) AS prev_hire_date,\n       RTRIM(XMLCAST(XMLAGG(XMLELEMENT(E, e.first_name || ', ') ORDER BY e.last_name) AS XMLTYPE).GETCLOBVAL(), ', ') AS names_list\nFROM   employees e\n       INNER JOIN departments d ON e.department_id = d.department_id\n       LEFT JOIN locations l ON d.location_id = l.location_id AND l.country_id = 'US'\nWHERE  e.hire_date BETWEEN DATEADD(month, CURRENT_TIMESTAMP(, DATE_TRUNC('day'), 'YEAR'), -12) AND CURRENT_TIMESTAMP()\n  AND  REGEXP_LIKE(e.email, '^[A-Z]{3}[0-9]{3}$')\n  AND  e.manager_id IS NOT NULL\nCONNECT BY PRIOR e.employee_id = e.manager_id\nSTART WITH e.manager_id IS NULL\nORDER BY e.department_id, rank_in_dept;",
+    "issues": [
+      "Incorrect conversion of ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), -12) to DATEADD: The Snowflake version uses CURRENT_TIMESTAMP(, DATE_TRUNC('day'), 'YEAR') which is syntactically invalid. It should be DATE_TRUNC('year', CURRENT_DATE()) and then DATEADD(month, -12, ...).",
+      "SYSDATE in Oracle is equivalent to CURRENT_DATE or CURRENT_TIMESTAMP depending on context; here it's used with date arithmetic so CURRENT_DATE would be more appropriate.",
+      "The XMLAGG/XMLCAST/GETCLOBVAL pattern for string aggregation is not supported in Snowflake. Snowflake uses LISTAGG for this purpose instead of Oracle's XML-based concatenation.",
+      "Snowflake does not support CONNECT BY syntax for hierarchical queries. It must be replaced with a recursive CTE.",
+      "The LAG function with IGNORE NULLS is not supported in Snowflake. Snowflake supports IGNORE NULLS in some window functions but not in LAG as of current versions.",
+      "Use of TIMESTAMP_NTZ '1900-01-01' is valid but may cause issues because LAG with IGNORE NULLS isn't supported; also, mixing NTZ with no time component is inconsistent.",
+      "The REGEXP_LIKE usage is correct, but note that Snowflake's REGEXP_LIKE is case-sensitive by default, same as Oracle, so no issue there.",
+      "NVL was correctly changed to COALESCE, but the original comment mentioned keeping NVL — this one was actually fixed.",
+      "RTRIM(XMLCAST(...).GETCLOBVAL(), ', ') uses Oracle-specific XML-to-string logic which has no direct equivalent in Snowflake and will fail.",
+      "The hint /*+ LEADING(e) USE_NL(d) */ is ignored in Snowflake as query hints are not supported."
+    ],
+    "proposed_rule": {
+      "type": "regex",
+      "pattern": "RTRIM\\(XMLCAST\\(XMLAGG\\(XMLELEMENT\\(E,([^)]+)\\) ORDER BY([^)]+)\\) AS XMLTYPE\\)\\.GETCLOBVAL\\(\\), '([^']*)'\\)",
+      "repl": "LISTAGG$1$2, '$3') WITHIN GROUP $2"
+    },
+    "applied": false
+  },
+  {
+    "timestamp": "2025-12-22T07:04:26.961029",
+    "trigger_sql": "SELECT NVL(TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1), 'YYYY-MM-DD'), 'No Date Available') AS previous_month_start,\n       NVL2(LAST_DAY(TO_DATE('2023-02-15', 'YYYY-MM-DD')), \n            TO_CHAR(LAST_DAY(TO_DATE('2023-02-15', 'YYYY-MM-DD')), 'Day, DD Month YYYY', 'NLS_DATE_LANGUAGE = American'), \n            'Invalid Date') AS last_day_of_month,\n       COALESCE(\n         CASE WHEN EXTRACT(DAY FROM SYSDATE) > 15 THEN TRUNC(SYSDATE, 'Q') ELSE ADD_MONTHS(TRUNC(SYSDATE, 'Q'), -3) END,\n         SYSDATE\n       ) AS adjusted_quarter_start,\n       NVL(TO_CHAR(\n             CASE \n               WHEN MOD(EXTRACT(YEAR FROM SYSDATE), 4) = 0 THEN NEXT_DAY(SYSDATE, 'SATURDAY')\n               ELSE LAST_DAY(ADD_MONTHS(SYSDATE, 6))\n             END, 'DD-MON-YYYY HH24:MI:SS'\n           ), 'Processing Error') AS conditional_future_date\nFROM DUAL\nCONNECT BY LEVEL <= 1;",
+    "before_conversion": "SELECT COALESCE(TO_CHAR(DATEADD(month, CURRENT_TIMESTAMP(, DATE_TRUNC('day'), 'MM'), -1), 'YYYY-MM-DD'), 'No TIMESTAMP_NTZ Available') AS previous_month_start,\n       IFF(LAST_DAY(TO_DATE('2023-02-15' IS NOT NULL, 'YYYY-MM-DD')), TO_VARCHAR(LAST_DAY(TO_DATE('2023-02-15', 'YYYY-MM-DD')), 'Day, DD Month YYYY', 'NLS_DATE_LANGUAGE = American'), \n            'Invalid TIMESTAMP_NTZ') AS last_day_of_month,\n       COALESCE(\n         CASE WHEN EXTRACT(DAY FROM CURRENT_TIMESTAMP()) > 15 THEN DATE_TRUNC('day', CURRENT_TIMESTAMP(), 'Q') ELSE DATEADD(month, CURRENT_TIMESTAMP(, DATE_TRUNC('day'), 'Q'), -3) END,\n         CURRENT_TIMESTAMP()\n       ) AS adjusted_quarter_start,\n       COALESCE(TO_CHAR(\n             CASE \n               WHEN MOD(EXTRACT(YEAR FROM CURRENT_TIMESTAMP()), 4) = 0 THEN NEXT_DAY(CURRENT_TIMESTAMP(), 'SATURDAY')\n               ELSE LAST_DAY(DATEADD(month, 6, CURRENT_TIMESTAMP()))\n             END, 'DD-MON-YYYY HH24:MI:SS'\n           ), 'Processing Error') AS conditional_future_date\n\nCONNECT BY LEVEL <= 1;",
+    "issues": [
+      "Incorrect use of CURRENT_TIMESTAMP() with extra parentheses and invalid syntax in DATEADD and DATE_TRUNC functions.",
+      "Invalid expression 'CURRENT_TIMESTAMP(, DATE_TRUNC('day'), 'MM')' – malformed and syntactically incorrect.",
+      "DATE_TRUNC function misused: correct syntax is DATE_TRUNC('month', <timestamp>) not DATE_TRUNC('day', <timestamp>, 'MM').",
+      "DATEADD function used incorrectly: should be DATEADD(month, -1, <date>) but is written as DATEADD(month, CURRENT_TIMESTAMP(, ...), -1).",
+      "Use of 'IS NOT NULL' inside IFF condition on a static date string is incorrect; TO_DATE('2023-02-15', 'YYYY-MM-DD') will never be null.",
+      "NLS_DATE_LANGUAGE parameter in TO_VARCHAR is not supported in Snowflake; localization should use session parameters or separate formatting logic.",
+      "The 'CONNECT BY LEVEL <= 1' clause is Oracle-specific and not valid in Snowflake; should be replaced with a generator or removed if only one row is needed.",
+      "Replaced 'NVL' with COALESCE correctly, but other NVL2 usage was changed to IFF, which is correct, however the logic was broken in translation.",
+      "Output literal 'No TIMESTAMP_NTZ Available' and 'Invalid TIMESTAMP_NTZ' incorrectly reference 'TIMESTAMP_NTZ' instead of 'Date', misleading and inconsistent with Oracle's intent.",
+      "NEXT_DAY function in Snowflake expects day name like 'SATURDAY' but is case-sensitive and requires proper locale setup; also, behavior may differ slightly from Oracle.",
+      "MOD(EXTRACT(YEAR FROM CURRENT_TIMESTAMP()), 4) = 0 does not correctly determine leap years (not equivalent to Oracle's logic for leap year handling).",
+      "Missing FROM clause in Snowflake query; Oracle's DUAL is not required but Snowflake requires a FROM source if not using standalone expressions."
+    ],
+    "proposed_rule": {
+      "type": "regex",
+      "pattern": "(NVL\\()([^,]+),\\s*('(?:[^']|'')*')\\)",
+      "repl": "COALESCE($2, $3)"
+    },
+    "applied": false
+  }
+]
